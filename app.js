@@ -1,8 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const connectDb = require("./db/database");
-const userRoutes = require("./controllers/users");
+const connectDb = require("./db/database.js");
+const individualUsersRoutes = require("./controllers/individual_users.js");
+const smeUsersRoutes = require("./controllers/sme_users.js");
+const passport = require("./utils/passport.js");
+const MongoStore = require("connect-mongo");
+const session = require("express-session");
 
 const app = express();
 
@@ -23,9 +27,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(express.json());
-
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB,
+      collectionName: "sessions",
+      autoRemove: "native",
+      ttl: 24 * 60 * 60,
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
 app.use("/", express.static("uploads"));
-app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/indi-user", individualUsersRoutes);
+app.use("/api/v1/sme-user", smeUsersRoutes);
 connectDb();
 app.options("*", cors());
 

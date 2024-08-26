@@ -18,8 +18,11 @@ const sendMail = async (options) => {
 
   htmlTemplate = htmlTemplate
     .replace("{{userName}}", options.context.userName)
-    .replace("{{activationCode}}", options.context.activationCode);
-  console.log("op mail:", options.email);
+    .replace("{{activationCode}}", options.context.activationCode)
+    .replace("{{message}}", options.context.message);
+
+  console.log("op mail:", htmlTemplate);
+  console.log("options:", options);
   const mailOptions = {
     from: process.env.SMTP_MAIL,
     to: options.email,

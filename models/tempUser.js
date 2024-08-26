@@ -5,6 +5,7 @@ const tempUserSchema = new mongoose.Schema(
     email_address: {
       type: String,
     },
+    company_name: String,
     full_name: String,
     password: String,
     verificationCode: Number,
