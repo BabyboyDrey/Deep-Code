@@ -32,7 +32,7 @@ passport.use(
       callbackURL:
         "https://instrumentation-colin-celebrate-im.trycloudflare.com/api/v1/indi-user/auth/google/callback",
       scope: ["profile", "email"],
-      passReqToCallback: true, // Passes the request to the callback
+      passReqToCallback: true,
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
@@ -40,7 +40,6 @@ passport.use(
         const email = emails && emails.length > 0 ? emails[0].value : null;
         const picture = photos && photos.length > 0 ? photos[0].value : null;
 
-        // Determine the role (could be 'seller' or 'user')
         const role = req.query.state;
         console.log("req.query.state:", req.query.state, role);
         let user;
