@@ -57,7 +57,7 @@ app.use("/", express.static("uploads"));
 app.use("/api/v1/indi-user", individualUsersRoutes);
 app.use("/api/v1/sme-user", smeUsersRoutes);
 connectDb();
-app.options("*", cors());
+//app.options("*", cors());
 
 process.on("uncaughtException", (err) => {
   console.log(`Uncaught Exception Err: ${err}`);
