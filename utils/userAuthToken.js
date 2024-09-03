@@ -6,8 +6,8 @@ const userAuthToken = (user, statusCode, res, userType) => {
   const options = {
     maxAge: JWT_EXPIRES_MS,
     httpOnly: true,
-    sameSite: "none",
-    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production" ? true : false,
   };
   if (userType === "individual") {
     res.status(statusCode).cookie("indi_user_token", user_token, options).json({
