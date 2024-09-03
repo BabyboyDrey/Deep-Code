@@ -156,7 +156,8 @@ router.post(
       }
 
       const newUser = await Users.create({
-        ...items,
+        full_name: tempUser.full_name,
+        email_address: tempUser.email_address,
         password: tempUser.password,
       });
       await TempUser.deleteOne({ _id: tempUser._id });

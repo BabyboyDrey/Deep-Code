@@ -153,7 +153,9 @@ router.post(
       }
 
       const newUser = await Users.create({
-        ...items,
+        email_address: tempUser.company_email_address,
+        company_name: tempUser.company_name,
+        full_name: tempUser.full_name,
         password: tempUser.password,
       });
       await TempUser.deleteOne({ _id: tempUser._id });
@@ -402,7 +404,7 @@ router.post(
 );
 
 router.get("/auth/google", (req, res, next) => {
-  const role = req.query.role || "sme";
+  const role = req.query.state || "sme";
   console.log("reqq.", req.query);
   passport.authenticate("google", {
     scope: ["profile", "email"],
