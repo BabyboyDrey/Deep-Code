@@ -21,7 +21,6 @@ const sendMail = async (options) => {
     .replace("{{activationCode}}", options.context.activationCode)
     .replace("{{message}}", options.context.message);
 
-  console.log("op mail:", htmlTemplate);
   console.log("options:", options);
   const mailOptions = {
     from: process.env.SMTP_MAIL,
