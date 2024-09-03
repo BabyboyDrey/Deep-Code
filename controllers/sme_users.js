@@ -153,7 +153,7 @@ router.post(
       }
 
       const newUser = await Users.create({
-        email_address: tempUser.company_email_address,
+        company_email_address: tempUser.email_address,
         company_name: tempUser.company_name,
         full_name: tempUser.full_name,
         password: tempUser.password,
