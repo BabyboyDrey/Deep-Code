@@ -223,7 +223,7 @@ router.post(
           message: "User does not exist with this email address",
         });
       }
-
+      console.log("/sgsh:", found_user);
       await VerificationCodes.deleteMany({
         email_address: items.email_address,
       });
@@ -314,14 +314,15 @@ router.post(
 router.post(
   "/verify-code-reset-pass",
   asyncErrCatcher(async (req, res) => {
-    const { email_address, code } = req.body;
-
     try {
+      const { email_address, code } = req.body;
+
       const verifiedCode = await VerificationCodes.findOne({
         email_address,
         verificationCode: code,
       });
-
+      console.log("cdf:", email_address, code);
+      console.log("--P", verifiedCode);
       if (!verifiedCode) {
         return res.status(400).json({
           error: true,
