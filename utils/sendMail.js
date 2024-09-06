@@ -13,8 +13,8 @@ const sendMail = async (options) => {
     },
   });
 
-  // const templatePath = path.resolve("./views/activation_template.html");
-  const templatePath = path.resolve("./views/sendAlert_template.html");
+  const templatePath = path.resolve("./views/activation_template.html");
+  //const templatePath = path.resolve("./views/sendAlert_template.html");
   let htmlTemplate = fs.readFileSync(templatePath, "utf8");
 
   htmlTemplate = htmlTemplate
