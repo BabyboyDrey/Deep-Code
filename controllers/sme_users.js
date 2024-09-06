@@ -210,7 +210,7 @@ router.post(
   asyncErrCatcher(async (req, res) => {
     try {
       const items = req.body;
-
+      console.log("//ak:", items);
       const found_user = await Users.findOne({
         company_email_address: items.company_email_address,
       });
@@ -227,12 +227,12 @@ router.post(
 
       const verificationCode = generateFourDigitVerificationCode();
 
-      await VerificationCodes.create({
-        email_address: items.company_email_address || null,
+      const new_verification_code = await VerificationCodes.create({
+        email_address: items.company_email_address,
         verificationCode,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       });
-
+      console.log("shhs:", new_verification_code);
       await sendMail({
         email: items.company_email_address,
         subject: "Reset your password",
@@ -262,26 +262,39 @@ router.post(
   asyncErrCatcher(async (req, res) => {
     try {
       const items = req.body;
+      const found_user = await Users.findOne({
+        company_email_address: items.company_email_address,
+      });
+      if (!found_user) {
+        return res.status(403).json({
+          error: true,
+          message: "User does not exist with this email address",
+        });
+      }
       const verificationCode = generateFourDigitVerificationCode();
       const found_temp = await VerificationCodes.findOne({
         email_address: items.company_email_address,
       });
+      if (!found_temp)
+        return res.status(401).json({
+          error: true,
+          message: "Anauthorized action! Stop!",
+        });
       console.log("/lll:", found_temp);
       await VerificationCodes.deleteOne({
         _id: found_temp._id,
       });
-      await VerificationCodes.create({
-        full_name: found_temp.full_name,
-        email_address: found_temp.company_email_address,
-        password: found_temp.password,
+      const new_verification_code = await VerificationCodes.create({
+        email_address: found_temp.email_address,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         verificationCode,
       });
+      console.log("ADf:", new_verification_code);
       await sendMail({
         email: items.company_email_address,
         subject: "Reset Password code",
         context: {
-          userName: items.full_name,
+          userName: found_user.full_name,
           activationCode: verificationCode,
           message: " reset your password.",
         },
@@ -303,20 +316,22 @@ router.post(
 router.post(
   "/verify-code-reset-passs",
   asyncErrCatcher(async (req, res) => {
-    const { email_address, code } = req.body;
+    const { company_email_address, code } = req.body;
 
     try {
+      console.log("aka:", company_email_address, code);
       const verifiedCode = await VerificationCodes.findOne({
-        email_address,
+        email_address: company_email_address,
         verificationCode: code,
       });
-
+      console.log("jk:", verifiedCode);
       if (!verifiedCode) {
         return res.status(400).json({
           error: true,
           message: "Invalid or expired verification code",
         });
       }
+
       if (verifiedCode.verificationCode !== code) {
         return res.status(400).json({
           error: true,
