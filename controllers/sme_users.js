@@ -85,7 +85,6 @@ router.post(
       const found_temp = await TempUser.findOne({
         email_address: items.company_email_address,
       });
-      console.log("..,k:", found_temp);
       console.log("lp:", found_temp);
       await TempUser.deleteOne({
         _id: found_temp._id,

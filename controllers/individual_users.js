@@ -178,11 +178,12 @@ router.post(
   asyncErrCatcher(async (req, res) => {
     try {
       const items = req.body;
+      console.log("route hit:", items);
       const found_user = await Users.findOne({
         email_address: items.email_address,
       });
       if (!found_user)
-        return res.staus(403).json({
+        return res.status(403).json({
           error: true,
           message: "No user found with this email address",
         });
@@ -192,11 +193,11 @@ router.post(
         found_user.password
       );
       if (!verifiedUser)
-        return res.tatus(404).json({
+        return res.status(404).json({
           error: true,
           message: "Wrong password or email credentials",
         });
-
+      console.log("user:", found_user, verifiedUser);
       userAuthToken(found_user, 200, res, "individual");
     } catch (err) {
       console.error(err);

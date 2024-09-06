@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const connectDb = require("./db/database.js");
 const individualUsersRoutes = require("./controllers/individual_users.js");
 const smeUsersRoutes = require("./controllers/sme_users.js");
+const breachesRoutes = require("./controllers/breaches.js");
 const passport = require("./utils/passport.js");
 const MongoStore = require("connect-mongo");
 const session = require("express-session");
@@ -50,6 +51,7 @@ app.use(passport.session());
 app.use("/", express.static("uploads"));
 app.use("/api/v1/indi-user", individualUsersRoutes);
 app.use("/api/v1/sme-user", smeUsersRoutes);
+app.use("/api/v1/user/breaches", breachesRoutes);
 connectDb();
 //app.options("*", cors());
 
