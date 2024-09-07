@@ -24,7 +24,7 @@ const sendMail = async (options) => {
     .replace("{{activationCode}}", options.context.activationCode)
     .replace("{{message}}", options.context.message);
 
-  console.log("options:", options);
+  console.log("options message:", options.context.message);
   console.log("Using template:", templatePath);
   console.log("Sending mail to:", options.email);
   const mailOptions = {

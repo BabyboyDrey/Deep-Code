@@ -30,7 +30,7 @@ async function sendAlert(
     subject: "Breach Alert!",
     context: {
       userName: full_name,
-      message: " activate your account.",
+      message: `${newAlert._id}`,
       subject: "Account Verification Code",
       type: "Alert",
     },
