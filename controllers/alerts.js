@@ -47,4 +47,32 @@ router.get(
   })
 );
 
+router.get(
+  "/get-all-alerts",
+  userAuth,
+  asyncErrCatcher(async (req, res) => {
+    try {
+      const all_alerts = await Alerts.find({
+        userId: req.user.id,
+      }).sort({ date_sent: -1 });
+
+      if (all_alerts.length === 0)
+        return res.status(404).json({
+          error: true,
+          message: "No alerts found",
+        });
+
+      res.json({
+        all_alerts,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: true,
+        message: err.message,
+      });
+    }
+  })
+);
+
 module.exports = router;

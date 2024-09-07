@@ -9,96 +9,6 @@ const router = express.Router();
 require("dotenv").config();
 const sendAlert = require("../utils/sendAlert.js");
 
-// router.get(
-//   "/get-breached-data",
-//   userAuth,
-//   asyncErrCatcher(async (req, res, next) => {
-//     console.log("route hit");
-//     try {
-//       const { email_address, domain } = req.query;
-//       const Patch = domain ? sme_users : indi_users;
-//       console.log("fu1:", Patch);
-
-//       const foundUser = await Patch.findOne({
-//         _id: req.user.id,
-//       }).maxTimeMS(50000);
-
-//       if (!foundUser) {
-//         return res.status(404).json({
-//           error: true,
-//           message: "Wrong user credentials",
-//         });
-//       }
-
-//       const recipient = domain
-//         ? foundUser.company_email_address
-//         : email_address;
-//       if (!domain && !email_address) {
-//         return res.status(400).json({
-//           error: true,
-//           message: "No query provided",
-//         });
-//       }
-
-//       const user_dsg = domain ? "domain" : "email";
-//       console.log("API Key:", process.env.API_KEY, process.env.TRASHPANDA_URL);
-
-//       const apiResponse = await axios.get(
-//         `${process.env.TRASHPANDA_URL}?${user_dsg}=${domain || email_address}`,
-//         { headers: { apiKey: process.env.API_KEY } }
-//       );
-
-//       const found_breach = await breaches.findOne({ userId: req.user.id });
-//       let newResultsIds = []; // Initialize as an empty array to ensure it is always defined
-//       console.log("found_breach", found_breach);
-//       if (found_breach) {
-//         const existingIds = new Set(
-//           found_breach.results.map((item) => item._id.toString())
-//         );
-
-//         const newResults = apiResponse.data.data.filter(
-//           (apiItem) => !existingIds.has(apiItem._id)
-//         );
-//         newResultsIds = newResults.map((item) => item._id); // IDs for new breach data
-//         console.log("ids_br:", newResultsIds);
-
-//         if (newResults.length > 0) {
-//           await breaches.updateOne(
-//             { userId: req.user.id },
-//             { $push: { results: { $each: newResults } } },
-//             { $set: { updatedAt: new Date() } }
-//           );
-//           console.log("Updated with new breach data:", newResults);
-//           found_breach.updatedAt = new Date();
-//           await found_breach.save();
-//         } else {
-//           console.log("No new breaches to update");
-//           return res.status(404).json({
-//             error: false,
-//             message: "No new breached data",
-//           });
-//         }
-//       }
-
-//       // Ensure sendAlert is called with properly defined newResultsIds
-//       sendAlert(
-//         recipient,
-//         user_dsg,
-//         req.user.id,
-//         foundUser.full_name,
-//         newResultsIds
-//       );
-//       return res.status(200).json({
-//         success: true,
-//         message: "Breached data successfully retrieved and updated!",
-//       });
-//     } catch (error) {
-//       console.error("API request failed:", error.message);
-//       next(error);
-//     }
-//   })
-// );
-
 router.get(
   "/get-breached-data",
   userAuth,
@@ -217,6 +127,38 @@ router.get(
     } catch (error) {
       console.error("API request failed:", error.message);
       next(error);
+    }
+  })
+);
+
+router.get(
+  "/get-all-breaches",
+  userAuth,
+  asyncErrCatcher(async (req, res) => {
+    try {
+      const all_breaches = await breaches.findOne({
+        userId: req.user.id,
+      });
+
+      if (all_breaches.length === 0)
+        return res.status(404).json({
+          error: true,
+          message: "No breach found",
+        });
+
+      const allbreaches = all_breaches.results;
+
+      res.json({
+        allbreaches,
+        createdAt: all_breaches.createdAt,
+        updatedAt: all_breaches.updatedAt,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: true,
+        message: err.message,
+      });
     }
   })
 );
