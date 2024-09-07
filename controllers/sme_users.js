@@ -314,7 +314,7 @@ router.post(
 );
 
 router.post(
-  "/verify-code-reset-passs",
+  "/verify-code-reset-pass",
   asyncErrCatcher(async (req, res) => {
     const { company_email_address, code } = req.body;
 
