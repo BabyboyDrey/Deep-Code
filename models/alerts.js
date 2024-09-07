@@ -9,6 +9,7 @@ const alertsSchema = new mongoose.Schema({
   date_sent: Date,
   recipient: String,
   db_user_disg: String,
+  breach_result_ids: Array,
 });
 
 module.exports = Alerts = mongoose.model("Alerts", alertsSchema);

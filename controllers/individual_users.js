@@ -232,7 +232,7 @@ router.post(
       const verificationCode = generateFourDigitVerificationCode();
 
       await VerificationCodes.create({
-        email_address: items.email_address || null,
+        email_address: items.email_address,
         verificationCode,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       });

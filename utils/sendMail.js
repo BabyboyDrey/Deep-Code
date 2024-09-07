@@ -13,8 +13,10 @@ const sendMail = async (options) => {
     },
   });
 
-  const templatePath = path.resolve("./views/activation_template.html");
-  //const templatePath = path.resolve("./views/sendAlert_template.html");
+  const templatePath =
+    options.context.type === "Alert"
+      ? path.resolve("./views/sendAlert.html")
+      : path.resolve("./views/activation_template.html");
   let htmlTemplate = fs.readFileSync(templatePath, "utf8");
 
   htmlTemplate = htmlTemplate
@@ -23,6 +25,8 @@ const sendMail = async (options) => {
     .replace("{{message}}", options.context.message);
 
   console.log("options:", options);
+  console.log("Using template:", templatePath);
+  console.log("Sending mail to:", options.email);
   const mailOptions = {
     from: process.env.SMTP_MAIL,
     to: options.email,
