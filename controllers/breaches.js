@@ -131,6 +131,7 @@ router.get(
       await breaches.create({
         db_user_disg: user_dsg,
         userId: req.user.id,
+
         results: apiResponse.data.data,
       });
       res.status(200).json({
@@ -153,7 +154,7 @@ router.get(
         userId: req.user.id,
       });
 
-      if (all_breaches.length === 0)
+      if (!all_breaches)
         return res.status(404).json({
           error: true,
           message: "No breach found",

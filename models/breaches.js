@@ -16,6 +16,7 @@ const singleResultSchema = new mongoose.Schema({
 const breachesSchema = new mongoose.Schema(
   {
     db_user_disg: String,
+    origin_email_or_domain_of_breach: String,
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
