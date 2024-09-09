@@ -94,7 +94,7 @@ router.get(
           );
           return res.status(200).json({
             success: true,
-            message: "Breached data successfully retrieved and updated!",
+            message: "Breached data successfully updated! Alert sent!",
           });
         } else {
           console.log("No new breaches to update");
@@ -122,7 +122,7 @@ router.get(
       });
       res.status(200).json({
         success: true,
-        message: "New Breached data successfully retrieved!",
+        message: "New Breached data successfully retrieved. Alert sent!",
       });
     } catch (error) {
       console.error("API request failed:", error.message);
