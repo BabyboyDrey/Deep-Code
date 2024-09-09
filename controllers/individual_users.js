@@ -9,6 +9,7 @@ const sendMail = require("../utils/sendMail.js");
 const generateSixDigitVerificationCode = require("../utils/generateSixDigitVerificationCode.js");
 const generateFourDigitVerificationCode = require("../utils/generateFourDigitVerificationCode.js");
 const passport = require("passport");
+const userAuth = require("../middlewares/userAuth.js");
 
 router.post(
   "/sign-up",
@@ -159,7 +160,9 @@ router.post(
         full_name: tempUser.full_name,
         email_address: tempUser.email_address,
         password: tempUser.password,
+        monitored_query_users: [tempUser.email_address],
       });
+
       await TempUser.deleteOne({ _id: tempUser._id });
 
       userAuthToken(newUser, 200, res, "individual");
@@ -434,6 +437,51 @@ router.get(
     userAuthToken(req.user, 200, res);
     res.redirect("/user/dashboard");
   }
+);
+
+router.post(
+  "/add-monitored-user",
+  userAuth,
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { new_email } = req.body;
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+      if (!new_email) {
+        return res.status(404).json({
+          error: true,
+          message: "No email provided",
+        });
+      }
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found",
+        });
+      }
+      console.log("foundUser:", foundUser, foundUser.monitored_query_users);
+
+      const email_exists = foundUser.monitored_query_users.includes(new_email);
+      if (email_exists) {
+        return res.status(409).json({
+          error: true,
+          message: "Email already exists",
+        });
+      }
+
+      foundUser.monitored_query_users.push(new_email);
+      await foundUser.save();
+
+      res.json({
+        success: true,
+        message: "New email added to monitoring succesffully!",
+      });
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  })
 );
 
 module.exports = router;

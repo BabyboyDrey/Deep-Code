@@ -9,6 +9,7 @@ const sendMail = require("../utils/sendMail.js");
 const generateSixDigitVerificationCode = require("../utils/generateSixDigitVerificationCode.js");
 const generateFourDigitVerificationCode = require("../utils/generateFourDigitVerificationCode.js");
 const passport = require("passport");
+const userAuth = require("../middlewares/userAuth.js");
 
 router.post(
   "/sign-up",
@@ -156,6 +157,7 @@ router.post(
         company_name: tempUser.company_name,
         full_name: tempUser.full_name,
         password: tempUser.password,
+        monitored_query_users: [tempUser.email_address],
       });
       await TempUser.deleteOne({ _id: tempUser._id });
 
@@ -436,6 +438,50 @@ router.get(
     userAuthToken(req.user, 200, res);
     res.redirect("/user/dashboard");
   }
+);
+
+router.post(
+  "/add-monitored-user",
+  userAuth,
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { new_domain } = req.body;
+      if (!new_domain) {
+        return res.status(404).json({
+          error: true,
+          message: "No domain provided",
+        });
+      }
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found",
+        });
+      }
+      const domain_exists =
+        foundUser.monitored_query_users.includes(new_domain);
+      if (domain_exists) {
+        return res.status(409).json({
+          error: true,
+          message: "Domain already exists",
+        });
+      }
+      console.log("foundUser:", foundUser, foundUser.monitored_query_users);
+      foundUser.monitored_query_users.push(new_domain);
+      await foundUser.save();
+
+      res.json({
+        success: true,
+        message: "New domain added to monitoring succesffully!",
+      });
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  })
 );
 
 module.exports = router;

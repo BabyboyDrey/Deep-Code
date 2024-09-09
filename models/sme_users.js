@@ -8,6 +8,7 @@ const smeUserSchema = new mongoose.Schema(
     company_email_address: String,
     googleId: String,
     avatar: String,
+    monitored_query_users: [String],
   },
   {
     timestamps: true,

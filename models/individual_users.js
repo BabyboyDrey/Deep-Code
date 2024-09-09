@@ -7,6 +7,7 @@ const individualUserSchema = new mongoose.Schema(
     email_address: String,
     googleId: String,
     avatar: String,
+    monitored_query_users: [String],
   },
   {
     timestamps: true,

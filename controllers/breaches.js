@@ -27,7 +27,7 @@ router.get(
           message: "Wrong user credentials",
         });
       }
-      console.log("e:", email_address, "e:", domain);
+      console.log("e:", email_address, "d:", domain);
 
       const recipient = domain
         ? `${foundUser.company_email_address}`
@@ -38,16 +38,29 @@ router.get(
           message: "No query provided",
         });
       }
+      const queryParam = domain || email_address;
+      const foundQuery = foundUser.monitored_query_users.find(
+        (e) => e === queryParam
+      );
+
+      console.log("foundQuery:", foundQuery);
+      if (!foundQuery) {
+        return res.status(404).json({
+          error: true,
+          message: "Provided query not found!",
+        });
+      }
+
       const user_dsg = (domain && "domain") || (email_address && "email");
       console.log("API Key:", process.env.API_KEY, process.env.TRASHPANDA_URL);
       console.log("e:", email_address, "d", domain);
       console.log(
         "Final URL:",
-        `${process.env.TRASHPANDA_URL}?${user_dsg}=${domain || email_address}`
+        `${process.env.TRASHPANDA_URL}?${user_dsg}=${queryParam}`
       );
 
       const apiResponse = await axios.get(
-        `${process.env.TRASHPANDA_URL}?${user_dsg}=${domain || email_address}`,
+        `${process.env.TRASHPANDA_URL}?${user_dsg}=${queryParam}`,
         {
           headers: {
             apiKey: process.env.API_KEY,
@@ -98,7 +111,7 @@ router.get(
           });
         } else {
           console.log("No new breaches to update");
-          return res.status(203).json({
+          return res.status(200).json({
             error: false,
             message: "No new breached data",
           });
