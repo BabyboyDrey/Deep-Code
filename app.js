@@ -20,7 +20,7 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use(
   cors({
-    origin: ["http://localhost:5174"],
+    origin: ["http://localhost:5174", "https://deepcode.onrender.com"],
     credentials: true,
   })
 );
