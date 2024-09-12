@@ -3,6 +3,7 @@ const userAuth = require("../middlewares/userAuth");
 const Alerts = require("../models/alerts");
 const breaches = require("../models/breaches");
 const router = require("express").Router();
+const mongoose = require("mongoose");
 
 router.get(
   "/get-alert/:id",
@@ -56,14 +57,32 @@ router.get(
         userId: req.user.id,
       }).sort({ date_sent: -1 });
 
-      if (all_alerts.length === 0)
+      if (all_alerts.length === 0) {
         return res.status(404).json({
           error: true,
           message: "No alerts found",
         });
+      }
+
+      let breachResultIds = all_alerts.reduce((acc, alert) => {
+        if (alert.breach_result_ids && alert.breach_result_ids.length > 0) {
+          return acc.concat(
+            alert.breach_result_ids.map((id) => new mongoose.Types.ObjectId(id))
+          );
+        }
+        return acc;
+      }, []);
+      console.log("breach ids:", breachResultIds);
+      breachResultIds = [...new Set(breachResultIds)];
+      console.log("breach ids after:", breachResultIds);
+
+      const breachData = await breaches.find({
+        userId: req.user.id,
+        "results._id": { $in: breachResultIds },
+      });
 
       res.json({
-        all_alerts,
+        breachData,
       });
     } catch (err) {
       console.error(err);
