@@ -83,6 +83,7 @@ router.get(
 
       res.json({
         breachData,
+        all_alerts,
       });
     } catch (err) {
       console.error(err);
