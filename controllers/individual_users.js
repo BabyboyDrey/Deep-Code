@@ -10,6 +10,7 @@ const generateSixDigitVerificationCode = require("../utils/generateSixDigitVerif
 const generateFourDigitVerificationCode = require("../utils/generateFourDigitVerificationCode.js");
 const passport = require("passport");
 const userAuth = require("../middlewares/userAuth.js");
+const OAuthToken = require("../models/oauthToken.js");
 
 router.post(
   "/sign-up",
@@ -481,6 +482,51 @@ router.post(
       console.error(error);
       next(error);
     }
+  })
+);
+
+router.get(
+  "/logout",
+  userAuth,
+  asyncErrCatcher(async (req, res) => {
+    await OAuthToken.deleteMany({ userId: req.user.id })
+      .then(() => {
+        req.session.destroy((err) => {
+          if (err) {
+            return res.status(500).json({
+              success: false,
+              message: "Failed to log out",
+            });
+          }
+
+          res.cookie("indi_user_token", "", {
+            maxAge: 0,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            path: "/",
+          });
+
+          res.cookie("connect.sid", "", {
+            maxAge: 0,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            path: "/",
+          });
+          console.log(`Indi User: ${req.user.id} logs out`);
+
+          res.status(200).json({
+            success: true,
+            message: "Logged out successfully",
+          });
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to delete oauth tokens hence failed to log out",
+        });
+      });
   })
 );
 

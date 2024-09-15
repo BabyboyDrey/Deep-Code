@@ -30,7 +30,7 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL:
-        "https://instrumentation-colin-celebrate-im.trycloudflare.com/api/v1/indi-user/auth/google/callback",
+        "http://localhost:5002/api/v1/indi-user/auth/google/callback",
       scope: ["profile", "email"],
       passReqToCallback: true,
     },

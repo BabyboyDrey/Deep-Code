@@ -20,6 +20,8 @@ const oauthTokenSchema = new mongoose.Schema({
   },
 });
 
+oauthTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 const OAuthToken = mongoose.model("OAuthToken", oauthTokenSchema);
 
 module.exports = OAuthToken;
