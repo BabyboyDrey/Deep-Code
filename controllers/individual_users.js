@@ -440,9 +440,36 @@ router.get(
   }
 );
 
+router.get(
+  "/get-monitored-user",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+
+      res.json({
+        success: true,
+        monitored_users: foundUser.monitored_query_users,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err);
+    }
+  })
+);
+
 router.post(
   "/add-monitored-user",
-  userAuth,
+  userAuth("indi"),
   asyncErrCatcher(async (req, res, next) => {
     try {
       const { new_email } = req.body;
@@ -487,7 +514,7 @@ router.post(
 
 router.get(
   "/logout",
-  userAuth,
+  userAuth("indi"),
   asyncErrCatcher(async (req, res) => {
     await OAuthToken.deleteMany({ userId: req.user.id })
       .then(() => {

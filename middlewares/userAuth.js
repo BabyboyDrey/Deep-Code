@@ -1,19 +1,39 @@
 const asyncErrCatcher = require("./asyncErrCatcher");
 const jwt = require("jsonwebtoken");
 
-module.exports = userAuth = asyncErrCatcher(async (req, res, next) => {
-  const userToken = req.cookies.indi_user_token || req.cookies.sme_user_token;
-  console.log("tok:", userToken, req.cookies);
-  if (!userToken) {
-    return res.status(403).json({
-      error: true,
-      message: "Forbidden Access",
-    });
-  }
+const userAuth = (requiredTokenType = null) => {
+  return async (req, res, next) => {
+    try {
+      let token;
 
-  const verified_user = jwt.verify(userToken, process.env.JWT_SECRET);
+      if (requiredTokenType === "sme") {
+        token = req.cookies.sme_user_token;
+      } else if (requiredTokenType === "indi") {
+        token = req.cookies.indi_user_token;
+      } else {
+        token = req.cookies.sme_user_token || req.cookies.indi_user_token;
+      }
 
-  req.user = verified_user;
-  console.log("req.user:", req.user);
-  next();
-});
+      if (!token) {
+        return res.status(403).json({
+          error: true,
+          message: "Forbidden: No token provided.",
+        });
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      req.user = decoded;
+
+      next();
+    } catch (err) {
+      console.error(err);
+      return res.status(401).json({
+        error: true,
+        message: "Unauthorized: Invalid token.",
+      });
+    }
+  };
+};
+
+module.exports = userAuth;
