@@ -11,6 +11,8 @@ const generateFourDigitVerificationCode = require("../utils/generateFourDigitVer
 const passport = require("passport");
 const userAuth = require("../middlewares/userAuth.js");
 const OAuthToken = require("../models/oauthToken.js");
+const alertPreferences = require("../models/alertPreferences.js");
+const breaches = require("../models/breaches.js");
 
 router.post(
   "/sign-up",
@@ -554,6 +556,120 @@ router.get(
           message: "Failed to delete oauth tokens hence failed to log out",
         });
       });
+  })
+);
+
+router.post(
+  "/add-team-member",
+  userAuth("sme"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const new_team_member = req.body;
+      console.log("new_team_member:", new_team_member);
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      console.log("foundUser:", foundUser);
+      if (!foundUser.team_memebers) {
+        foundUser.team_memebers = [];
+      }
+
+      const existingMember = foundUser.team_memebers.find((e) => {
+        return e && e.domain === new_team_member.domain;
+      });
+
+      if (existingMember) {
+        return res.status(409).json({
+          error: true,
+          message: "Team member already exists with this domain!",
+        });
+      }
+
+      foundUser.team_memebers.push(new_team_member);
+      await foundUser.save();
+      res.json({
+        success: true,
+        message: "Team member added successfully!",
+        new_team_members: foundUser.team_memebers,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
+router.post(
+  "/change-alert-preferences",
+  userAuth("sme"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const update = req.body;
+      const foundUserAlertPrefs = await alertPreferences.findOne({
+        userId: req.user.id,
+      });
+      let newUserPrefs;
+      if (!foundUserAlertPrefs) {
+        newUserPrefs = alertPreferences.create({
+          userId: req.user.id,
+        });
+      }
+      newUserPrefs = newUserPrefs ? newUserPrefs : foundUserAlertPrefs;
+      console.log("update", update);
+      if (
+        update.alertChannels &&
+        (!update?.alertChannels?.email ||
+          update?.alertChannels?.inApp ||
+          update?.alertChannels?.smsAlerts)
+      ) {
+        throw new Error("Email alert functionality enabled only for now!");
+      }
+      if (update.emailAlert && update?.emailAlert !== "Immediately") {
+        return res.status(409).json({
+          error: true,
+          message: "Email alerts is already set to immediately",
+        });
+      }
+      if (update.severity && update?.severity !== "High") {
+        return res.status(409).json({
+          error: true,
+          message: "Email severity is already set to High",
+        });
+      }
+      res.json({
+        success: true,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err);
+    }
+  })
+);
+
+//In the works
+router.get(
+  "/domain-monitoring-summary",
+  userAuth("sme"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const foundUserBreach = await breaches.findOne({
+        userId: req.user.id,
+      });
+
+      if (!foundUserBreach) {
+        throw new Error("User has no breach record!");
+      }
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
   })
 );
 

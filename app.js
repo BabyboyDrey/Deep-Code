@@ -9,6 +9,7 @@ const alertsRoutes = require("./controllers/alerts.js");
 const passport = require("./utils/passport.js");
 const MongoStore = require("connect-mongo");
 const session = require("express-session");
+const morgan = require("morgan");
 
 const app = express();
 
@@ -50,10 +51,15 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 app.use("/", express.static("uploads"));
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms")
+);
+
 app.use("/api/v1/indi-user", individualUsersRoutes);
 app.use("/api/v1/sme-user", smeUsersRoutes);
 app.use("/api/v1/user/breaches", breachesRoutes);
 app.use("/api/v1/user/alerts", alertsRoutes);
+
 connectDb();
 //app.options("*", cors());
 

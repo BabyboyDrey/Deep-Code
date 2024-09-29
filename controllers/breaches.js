@@ -149,11 +149,12 @@ router.get(
   "/get-all-breaches",
   userAuth,
   asyncErrCatcher(async (req, res) => {
+    console.log("route hit");
     try {
       const all_breaches = await breaches.findOne({
         userId: req.user.id,
       });
-
+      console.log("all_breaches:", all_breaches);
       if (!all_breaches)
         return res.status(404).json({
           error: true,

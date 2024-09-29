@@ -22,6 +22,7 @@ const breachesSchema = new mongoose.Schema(
       ref: "User",
     },
     results: [singleResultSchema],
+    last_scan_date: Date,
   },
   {
     timestamps: true,
