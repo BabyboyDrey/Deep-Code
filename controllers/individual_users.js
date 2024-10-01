@@ -518,18 +518,38 @@ router.post(
       const foundAlert = await alertPreferences.findOne({
         userId: req.user.id,
       });
-      foundAlert.email_alert_brackets.push({
-        alertChannels: {
-          email: true,
-          inApp: false,
-          smsAlerts: false,
-        },
-        user_monitored_email: new_email,
-        emailAlert: "Soon",
-        severity: "Soon",
-      });
+      console.log("foundAlert:", foundAlert);
+      if (!foundAlert) {
+        await alertPreferences.create({
+          userId: foundUser._id,
+          userType: "Individual",
+          email_alert_brackets: [
+            {
+              alertChannels: {
+                email: true,
+                inApp: false,
+                smsAlerts: false,
+              },
+              user_monitored_email: new_email,
+              emailAlert: "Soon",
+              severity: "Soon",
+            },
+          ],
+        });
+      } else {
+        foundAlert.email_alert_brackets.push({
+          alertChannels: {
+            email: true,
+            inApp: false,
+            smsAlerts: false,
+          },
+          user_monitored_email: new_email,
+          emailAlert: "Soon",
+          severity: "Soon",
+        });
+        await foundAlert.save();
+      }
       await foundUser.save();
-      await foundAlert.save();
 
       res.json({
         success: true,
