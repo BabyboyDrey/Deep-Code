@@ -866,4 +866,29 @@ router.get(
   })
 );
 
+router.get(
+  "/user-info",
+  userAuth("sme"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      res.json({
+        success: true,
+        foundUser,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
 module.exports = router;
