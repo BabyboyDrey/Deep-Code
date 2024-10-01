@@ -718,34 +718,6 @@ router.post(
   })
 );
 
-// router.get(
-//   "/get-alert-preferences",
-//   userAuth("indi"),
-//   asyncErrCatcher(async (req, res, next) => {
-//     try {
-//       const foundUserAlertPrefs = await alertPreferences.findOne({
-//         userId: req.user.id,
-//       });
-//       let newUserPrefs;
-//       if (!foundUserAlertPrefs) {
-//         newUserPrefs = alertPreferences.create({
-//           userId: req.user.id,
-//           userType: "Individual",
-//         });
-//       }
-//       newUserPrefs = newUserPrefs ? newUserPrefs : foundUserAlertPrefs;
-
-//       res.json({
-//         success: true,
-//         pref: newUserPrefs,
-//       });
-//     } catch (err) {
-//       console.error(err);
-//       next(err);
-//     }
-//   })
-// );
-
 router.get(
   "/get-alert-preferences",
   userAuth("indi"),
@@ -757,7 +729,7 @@ router.get(
       if (!foundUser) {
         return res.status(404).json({
           error: true,
-          message: "No user found!",
+          message: "No indi user found!",
         });
       }
       const foundUserAlertPrefs = await alertPreferences.findOne({
