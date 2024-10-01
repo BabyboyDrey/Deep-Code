@@ -891,4 +891,94 @@ router.get(
   })
 );
 
+router.put(
+  "/edit-team-member",
+  userAuth("sme"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const updateInfo = req.body;
+      const { query } = req.query;
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      const foundMemeber = foundUser.team_memebers.find(
+        (elem) => elem.domain === query
+      );
+      if (!foundMemeber) {
+        return res.status(404).json({
+          error: true,
+          message: "Team member not found!",
+        });
+      }
+      if (updateInfo.domain) {
+        foundMemeber.domain = updateInfo.domain;
+      }
+      if (updateInfo.role) {
+        foundMemeber.role = updateInfo.role;
+      }
+      if (updateInfo.full_name) {
+        foundMemeber.full_name = updateInfo.full_name;
+      }
+      if (updateInfo.status) {
+        foundMemeber.status = updateInfo.status;
+      }
+      await foundUser.save();
+      res.json({
+        success: true,
+        message: "Updated team member successfully!",
+        updatedMemeber: foundMemeber,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
+router.delete(
+  "/delete-team-member",
+  userAuth("sme"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { query } = req.query;
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      const foundMemeber = foundUser.team_memebers.find(
+        (elem) => elem.domain === query
+      );
+      if (!foundMemeber) {
+        return res.status(404).json({
+          error: true,
+          message: "Team member not found!",
+        });
+      }
+      const newMembers = foundUser.team_memebers.filter(
+        (elem) => elem.domain !== query
+      );
+      foundUser.team_memebers = newMembers;
+      await foundUser.save();
+      res.json({
+        success: true,
+        message: "Member deleted successfully!",
+        team: foundUser.team_memebers,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
 module.exports = router;
