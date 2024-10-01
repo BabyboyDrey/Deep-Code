@@ -11,6 +11,7 @@ const generateFourDigitVerificationCode = require("../utils/generateFourDigitVer
 const passport = require("passport");
 const userAuth = require("../middlewares/userAuth.js");
 const OAuthToken = require("../models/oauthToken.js");
+const alertPreferences = require("../models/alertPreferences.js");
 
 router.post(
   "/sign-up",
@@ -163,7 +164,22 @@ router.post(
         password: tempUser.password,
         monitored_query_users: [tempUser.email_address],
       });
-
+      await alertPreferences.create({
+        userId: newUser._id,
+        userType: "Individual",
+        email_alert_brackets: [
+          {
+            alertChannels: {
+              email: true,
+              inApp: false,
+              smsAlerts: false,
+            },
+            user_monitored_email: newUser.email_address,
+            emailAlert: "Soon",
+            severity: "Soon",
+          },
+        ],
+      });
       await TempUser.deleteOne({ _id: tempUser._id });
 
       userAuthToken(newUser, 200, res, "individual");
@@ -499,7 +515,21 @@ router.post(
       }
 
       foundUser.monitored_query_users.push(new_email);
+      const foundAlert = await alertPreferences.findOne({
+        userId: req.user.id,
+      });
+      foundAlert.email_alert_brackets.push({
+        alertChannels: {
+          email: true,
+          inApp: false,
+          smsAlerts: false,
+        },
+        user_monitored_email: new_email,
+        emailAlert: "Soon",
+        severity: "Soon",
+      });
       await foundUser.save();
+      await foundAlert.save();
 
       res.json({
         success: true,
@@ -554,6 +584,234 @@ router.get(
           message: "Failed to delete oauth tokens hence failed to log out",
         });
       });
+  })
+);
+
+router.post(
+  "/change-alert-preferences",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const updateInfo = req.body;
+      const foundUser = await Users.findOne({ _id: req.user.id });
+      const foundUserAlertPrefs = await alertPreferences.findOne({
+        userId: req.user.id,
+      });
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      let newUserPrefs;
+      if (!foundUserAlertPrefs) {
+        newUserPrefs = await alertPreferences.create({
+          userId: req.user.id,
+          userType: "Individual",
+          email_alert_brackets: [
+            {
+              alertChannels: {
+                email: true,
+                inApp: false,
+                smsAlerts: false,
+              },
+              user_monitored_email: foundUser.email_address,
+              emailAlert: "Soon",
+              severity: "Soon",
+            },
+          ],
+        });
+      }
+      newUserPrefs = newUserPrefs ? newUserPrefs : foundUserAlertPrefs;
+
+      console.log("updateInfo", updateInfo);
+
+      if (!updateInfo.email) {
+        throw new Error("Required field email address not provided!");
+      }
+
+      const verifiedQuery = foundUser.monitored_query_users.find(
+        (elem) => elem === updateInfo.email
+      );
+
+      if (!verifiedQuery) {
+        return res.status(403).json({
+          error: true,
+          message: "Query parameter forbidden!",
+        });
+      }
+      console.log("newUserPrefs:", newUserPrefs);
+      if (newUserPrefs.email_alert_brackets.length === 0) {
+        newUserPrefs.email_alert_brackets.push({
+          user_monitored_email: updateInfo.email,
+          alertChannels: {
+            email:
+              updateInfo.alertChannels?.email !== undefined
+                ? updateInfo.alertChannels.email
+                : true,
+            inApp:
+              updateInfo.alertChannels?.inApp !== undefined
+                ? updateInfo.alertChannels.inApp
+                : false,
+            smsAlerts:
+              updateInfo.alertChannels?.smsAlerts !== undefined
+                ? updateInfo.alertChannels.smsAlerts
+                : false,
+          },
+          emailAlert:
+            updateInfo.emailAlert !== undefined
+              ? updateInfo.emailAlert
+              : "Default",
+          severity:
+            updateInfo.severity !== undefined ? updateInfo.severity : "Default",
+        });
+      } else {
+        const index = newUserPrefs.email_alert_brackets.findIndex(
+          (elem) => elem.user_monitored_email === updateInfo.email
+        );
+        console.log("index:", index);
+        if (index !== -1) {
+          const foundAlertPref = newUserPrefs.email_alert_brackets[index];
+          console.log("foundAlertPref:", foundAlertPref);
+          if (updateInfo.alertChannels) {
+            if (updateInfo.alertChannels.email !== undefined) {
+              foundAlertPref.alertChannels.email =
+                updateInfo.alertChannels.email;
+            }
+            if (updateInfo.alertChannels.inApp !== undefined) {
+              foundAlertPref.alertChannels.inApp =
+                updateInfo.alertChannels.inApp;
+            }
+            if (updateInfo.alertChannels.smsAlerts !== undefined) {
+              foundAlertPref.alertChannels.smsAlerts =
+                updateInfo.alertChannels.smsAlerts;
+            }
+          }
+          if (updateInfo.emailAlert !== undefined) {
+            foundAlertPref.emailAlert = updateInfo.emailAlert;
+          }
+          if (updateInfo.severity !== undefined) {
+            foundAlertPref.severity = updateInfo.severity;
+          }
+        } else {
+          return res.status(404).json({
+            error: true,
+            message: "Alert preferences for the provided email not found.",
+          });
+        }
+      }
+      console.log(
+        "newUserPrefsn",
+        JSON.stringify(newUserPrefs.email_alert_brackets)
+      );
+      const result = await newUserPrefs.save();
+
+      res.json({
+        success: true,
+        message: "Update successful",
+        result,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err);
+    }
+  })
+);
+
+// router.get(
+//   "/get-alert-preferences",
+//   userAuth("indi"),
+//   asyncErrCatcher(async (req, res, next) => {
+//     try {
+//       const foundUserAlertPrefs = await alertPreferences.findOne({
+//         userId: req.user.id,
+//       });
+//       let newUserPrefs;
+//       if (!foundUserAlertPrefs) {
+//         newUserPrefs = alertPreferences.create({
+//           userId: req.user.id,
+//           userType: "Individual",
+//         });
+//       }
+//       newUserPrefs = newUserPrefs ? newUserPrefs : foundUserAlertPrefs;
+
+//       res.json({
+//         success: true,
+//         pref: newUserPrefs,
+//       });
+//     } catch (err) {
+//       console.error(err);
+//       next(err);
+//     }
+//   })
+// );
+
+router.get(
+  "/get-alert-preferences",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { query } = req.query;
+      console.log("query:", query);
+      const foundUser = await Users.findOne({ _id: req.user.id });
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      const foundUserAlertPrefs = await alertPreferences.findOne({
+        userId: req.user.id,
+        "email_alert_brackets.user_monitored_email": query,
+      });
+      const verifiedQuery = foundUser.monitored_query_users.find(
+        (elem) => elem === query
+      );
+
+      if (!verifiedQuery) {
+        return res.status(403).json({
+          error: true,
+          message: "Query parameter forbidden!",
+        });
+      }
+      console.log("foundUserAlertPrefs:", foundUserAlertPrefs);
+      // if (!foundUserAlertPrefs) {
+      //   return res.status(404).json({
+      //     error: true,
+      //     message: "No alert preferences created",
+      //   });
+      // }
+      // let newUserPrefs;
+      if (!foundUserAlertPrefs) {
+        newUserPrefs = alertPreferences.create({
+          userId: req.user.id,
+          userType: "Individual",
+          email_alert_brackets: [
+            {
+              alertChannels: {
+                email: true,
+                inApp: false,
+                smsAlerts: false,
+              },
+              user_monitored_email: foundUser.email_address,
+              emailAlert: "Soon",
+              severity: "Soon",
+            },
+          ],
+        });
+      }
+      // newUserPrefs = newUserPrefs ? newUserPrefs : foundUserAlertPrefs;
+      const matchedBracket = foundUserAlertPrefs.email_alert_brackets.find(
+        (bracket) => bracket.user_monitored_email === query
+      );
+      res.json({
+        success: true,
+        matchedBracket,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err);
+    }
   })
 );
 

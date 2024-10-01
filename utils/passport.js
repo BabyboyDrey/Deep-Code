@@ -4,6 +4,7 @@ const expressSession = require("express-session");
 const OAuthToken = require("../models/oauthToken.js");
 const SME_users = require("../models/sme_users.js");
 const Indi_users = require("../models/individual_users.js");
+const alertPreferences = require("../models/alertPreferences.js");
 require("dotenv").config();
 
 async function saveOAuthToken(
@@ -57,6 +58,22 @@ passport.use(
                 avatar: picture,
                 full_name: displayName,
               });
+              await alertPreferences.create({
+                userId: user._id,
+                userType: "SME",
+                email_alert_brackets: [
+                  {
+                    alertChannels: {
+                      email: true,
+                      inApp: false,
+                      smsAlerts: false,
+                    },
+                    user_monitored_email: user.company_email_address,
+                    emailAlert: "Soon",
+                    severity: "Soon",
+                  },
+                ],
+              });
             } else {
               user.googleId = id;
               await user.save();
@@ -73,6 +90,22 @@ passport.use(
                 email_address: email,
                 avatar: picture,
                 full_name: displayName,
+              });
+              await alertPreferences.create({
+                userId: user._id,
+                userType: "Individual",
+                email_alert_brackets: [
+                  {
+                    alertChannels: {
+                      email: true,
+                      inApp: false,
+                      smsAlerts: false,
+                    },
+                    user_monitored_email: user.email_address,
+                    emailAlert: "Soon",
+                    severity: "Soon",
+                  },
+                ],
               });
             } else {
               user.googleId = id;
