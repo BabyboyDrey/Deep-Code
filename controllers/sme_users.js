@@ -13,6 +13,7 @@ const userAuth = require("../middlewares/userAuth.js");
 const OAuthToken = require("../models/oauthToken.js");
 const alertPreferences = require("../models/alertPreferences.js");
 const breaches = require("../models/breaches.js");
+const jwt = require("jsonwebtoken");
 
 router.post(
   "/sign-up",
@@ -459,6 +460,118 @@ router.get(
   }
 );
 
+router.post(
+  "/team-member-create-pass/:superId",
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { superId } = req.params;
+      const { domain, password, confirm_password } = req.body;
+      if (!domain && !password && !confirm_password) {
+        throw new Error("Required fields not provided!");
+      }
+      const foundUser = await Users.findOne({
+        _id: superId,
+      });
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      console.log("foundUser:", foundUser);
+      const foundMember = foundUser.team_members.find(
+        (elem) => elem.domain === domain
+      );
+
+      if (!foundMember) {
+        return res.status(404).json({
+          error: true,
+          message: "No member found!",
+        });
+      }
+
+      if (password !== confirm_password) {
+        return res.status(400).json({
+          error: true,
+          message: "Passwords mismatch",
+        });
+      }
+      const salt = await bcrypt.genSalt(12);
+      const hashedPass = await bcrypt.hash(password, salt);
+      foundMember.password = hashedPass;
+      await foundUser.save();
+
+      res.json({
+        success: true,
+        message: "Member's Password saved!",
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
+router.post(
+  "/team-member-login",
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { domain, password } = req.body;
+      const foundUser = await Users.findOne({
+        "team_members.domain": domain,
+      });
+      if (!domain && !password) {
+        throw new Error("Required fields not provided!");
+      }
+      if (!foundUser) {
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+      const foundMember = foundUser.team_members.find(
+        (member) => member.domain === domain
+      );
+      if (!foundMember) {
+        return res.status(404).json({
+          error: true,
+          message: "No member found!",
+        });
+      }
+      const verifiedUser = await bcrypt.compare(password, foundMember.password);
+      if (!verifiedUser)
+        return res.status(404).json({
+          error: true,
+          message: "Wrong password or email credentials",
+        });
+      const JWT_EXPIRES_MS = 8 * 60 * 60 * 1000;
+      const options = {
+        maxAge: JWT_EXPIRES_MS,
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production" ? true : false,
+      };
+      const team_member_token = await jwt.sign(
+        {
+          _id: foundMember._id,
+          superId: foundUser._id,
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: process.env.JWT_EXPIRES,
+        }
+      );
+      res.cookie("team_member_token", team_member_token, options).json({
+        success: true,
+        message: "Login successful!",
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
 router.get(
   "/get-monitored-user",
   userAuth("sme"),
@@ -628,11 +741,11 @@ router.post(
         });
       }
       console.log("foundUser:", foundUser);
-      if (!foundUser.team_memebers) {
-        foundUser.team_memebers = [];
+      if (!foundUser.team_members) {
+        foundUser.team_members = [];
       }
 
-      const existingMember = foundUser.team_memebers.find((e) => {
+      const existingMember = foundUser.team_members.find((e) => {
         return e && e.domain === new_team_member.domain;
       });
 
@@ -643,12 +756,22 @@ router.post(
         });
       }
 
-      foundUser.team_memebers.push(new_team_member);
+      foundUser.team_members.push(new_team_member);
       await foundUser.save();
+      await sendMail({
+        email: new_team_member.domain,
+        subject: "Set up your account",
+        context: {
+          subject: "Set up your password",
+          userName: new_team_member.full_name,
+          message: `${foundUser._id}`,
+          type: "Team",
+        },
+      });
       res.json({
         success: true,
         message: "Team member added successfully!",
-        new_team_members: foundUser.team_memebers,
+        new_team_members: foundUser.team_members,
       });
     } catch (err) {
       console.error(err);
@@ -928,7 +1051,7 @@ router.put(
           message: "No user found!",
         });
       }
-      const foundMemeber = foundUser.team_memebers.find(
+      const foundMemeber = foundUser.team_members.find(
         (elem) => elem.domain === query
       );
       if (!foundMemeber) {
@@ -977,7 +1100,7 @@ router.delete(
           message: "No user found!",
         });
       }
-      const foundMemeber = foundUser.team_memebers.find(
+      const foundMemeber = foundUser.team_members.find(
         (elem) => elem.domain === query
       );
       if (!foundMemeber) {
@@ -986,15 +1109,15 @@ router.delete(
           message: "Team member not found!",
         });
       }
-      const newMembers = foundUser.team_memebers.filter(
+      const newMembers = foundUser.team_members.filter(
         (elem) => elem.domain !== query
       );
-      foundUser.team_memebers = newMembers;
+      foundUser.team_members = newMembers;
       await foundUser.save();
       res.json({
         success: true,
         message: "Member deleted successfully!",
-        team: foundUser.team_memebers,
+        team: foundUser.team_members,
       });
     } catch (err) {
       console.error(err);

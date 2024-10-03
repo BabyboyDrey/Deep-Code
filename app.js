@@ -10,6 +10,7 @@ const passport = require("./utils/passport.js");
 const MongoStore = require("connect-mongo");
 const session = require("express-session");
 const morgan = require("morgan");
+require("./cronJobs/fetchBreachData.js");
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use("/api/v1/user/breaches", breachesRoutes);
 app.use("/api/v1/user/alerts", alertsRoutes);
 
 connectDb();
+//fetchBreachedData();
 //app.options("*", cors());
 
 process.on("uncaughtException", (err) => {

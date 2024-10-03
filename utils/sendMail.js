@@ -13,12 +13,16 @@ const sendMail = async (options) => {
     },
   });
 
-  const templatePath =
-    options.context.type === "Alert"
-      ? path.resolve("./views/sendAlert.html")
-      : path.resolve("./views/activation_template.html");
+  let templatePath;
+  if (options.context.type === "Alert") {
+    templatePath = path.resolve("./views/sendAlert.html");
+  } else if (options.context.type === "Team") {
+    templatePath = path.resolve("./views/team_member_set_password.html");
+  } else {
+    templatePath = path.resolve("./views/activation_template.html");
+  }
   let htmlTemplate = fs.readFileSync(templatePath, "utf8");
-
+  console.log("options:", options.context);
   htmlTemplate = htmlTemplate
     .replace("{{userName}}", options.context.userName)
     .replace("{{activationCode}}", options.context.activationCode)

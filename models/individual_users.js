@@ -8,6 +8,13 @@ const individualUserSchema = new mongoose.Schema(
     googleId: String,
     avatar: String,
     monitored_query_users: [String],
+    monitored_query_users_information: [
+      {
+        email: String,
+        last_scan: Date,
+        next_scan: Date,
+      },
+    ],
   },
   {
     timestamps: true,

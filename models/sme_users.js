@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const teamMembersSchema = new mongoose.Schema({
   domain: String,
   full_name: String,
+  password: String,
   role: String,
   last_login: {
     type: Date,
@@ -23,7 +24,14 @@ const smeUserSchema = new mongoose.Schema(
     googleId: String,
     avatar: String,
     monitored_query_users: [String],
-    team_memebers: [teamMembersSchema],
+    team_members: [teamMembersSchema],
+    monitored_query_users_information: [
+      {
+        domain: String,
+        last_scan: Date,
+        next_scan: Date,
+      },
+    ],
   },
   {
     timestamps: true,
