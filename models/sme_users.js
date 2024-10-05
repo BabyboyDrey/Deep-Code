@@ -27,7 +27,7 @@ const smeUserSchema = new mongoose.Schema(
     team_members: [teamMembersSchema],
     monitored_query_users_information: [
       {
-        domain: String,
+        domain: { type: String, unique: true },
         last_scan: Date,
         next_scan: Date,
       },

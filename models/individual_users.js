@@ -10,7 +10,7 @@ const individualUserSchema = new mongoose.Schema(
     monitored_query_users: [String],
     monitored_query_users_information: [
       {
-        email: String,
+        email: { type: String, unique: true },
         last_scan: Date,
         next_scan: Date,
       },
