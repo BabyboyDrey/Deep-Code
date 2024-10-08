@@ -21,10 +21,6 @@ const breaches = require("../models/breaches");
 //           process.env.TRASHPANDA_URL
 //         }?domain=${encodeURIComponent(domain)}`;
 
-//         const lastScanDate = new Date();
-//         const nextScanDate = new Date(lastScanDate);
-//         nextScanDate.setHours(lastScanDate.getHours() + 24);
-
 //         try {
 //           const response = await axios.get(smeUrl, {
 //             headers: {
@@ -37,10 +33,14 @@ const breaches = require("../models/breaches");
 //           });
 //           let newIds = [];
 
+//           const lastScanDate = new Date();
+//           const nextScanDate = new Date(lastScanDate);
+//           nextScanDate.setHours(lastScanDate.getHours() + 24);
+
 //           const infoEntry = smeUser.monitored_query_users_information.find(
 //             (info) => info.domain === domain
 //           );
-
+//           console.log("infoEntry sme user:", infoEntry, "domain:", domain);
 //           if (infoEntry) {
 //             infoEntry.last_scan = lastScanDate;
 //             infoEntry.next_scan = nextScanDate;
@@ -108,10 +108,14 @@ const breaches = require("../models/breaches");
 //         } catch (error) {
 //           console.error(`Error fetching data for domain ${domain}:`, error);
 
+//           const lastScanDate = new Date();
+//           const nextScanDate = new Date(lastScanDate);
+//           nextScanDate.setHours(lastScanDate.getHours() + 24);
+
 //           const infoEntry = smeUser.monitored_query_users_information.find(
 //             (info) => info.domain === domain
 //           );
-
+//           console.log("infoEntry sme user:", infoEntry, "domain:", domain);
 //           if (infoEntry) {
 //             infoEntry.last_scan = lastScanDate;
 //             infoEntry.next_scan = nextScanDate;
@@ -142,10 +146,6 @@ const breaches = require("../models/breaches");
 //           process.env.TRASHPANDA_URL
 //         }?email=${encodeURIComponent(email)}`;
 
-//         const lastScanDate = new Date();
-//         const nextScanDate = new Date(lastScanDate);
-//         nextScanDate.setHours(lastScanDate.getHours() + 24);
-
 //         try {
 //           const response = await axios.get(indiUrl, {
 //             headers: {
@@ -158,10 +158,14 @@ const breaches = require("../models/breaches");
 //           });
 //           let newIds = [];
 
+//           const lastScanDate = new Date();
+//           const nextScanDate = new Date(lastScanDate);
+//           nextScanDate.setHours(lastScanDate.getHours() + 24);
+
 //           const infoEntry = indiUser.monitored_query_users_information.find(
 //             (info) => info.email === email
 //           );
-
+//           console.log("infoEntry indi user:", infoEntry, "email:", email);
 //           if (infoEntry) {
 //             infoEntry.last_scan = lastScanDate;
 //             infoEntry.next_scan = nextScanDate;
@@ -229,10 +233,14 @@ const breaches = require("../models/breaches");
 //         } catch (error) {
 //           console.error(`Error fetching data for email ${email}:`, error);
 
+//           const lastScanDate = new Date();
+//           const nextScanDate = new Date(lastScanDate);
+//           nextScanDate.setHours(lastScanDate.getHours() + 24);
+
 //           const infoEntry = indiUser.monitored_query_users_information.find(
 //             (info) => info.email === email
 //           );
-
+//           console.log("infoEntry indi user:", infoEntry, "email:", email);
 //           if (infoEntry) {
 //             infoEntry.last_scan = lastScanDate;
 //             infoEntry.next_scan = nextScanDate;
@@ -286,18 +294,25 @@ const fetchBreachedData = async () => {
           nextScanDate.setHours(lastScanDate.getHours() + 24);
 
           const infoEntry = smeUser.monitored_query_users_information.find(
-            (info) => info.domain === domain
+            (info) => info.domain?.toLowerCase() === domain.toLowerCase()
           );
+          console.log("infoEntry sme user:", infoEntry, "domain:", domain);
 
           if (infoEntry) {
             infoEntry.last_scan = lastScanDate;
             infoEntry.next_scan = nextScanDate;
           } else {
-            smeUser.monitored_query_users_information.push({
-              domain: domain,
-              last_scan: lastScanDate,
-              next_scan: nextScanDate,
-            });
+            const isDuplicate = smeUser.monitored_query_users_information.some(
+              (info) => info.domain?.toLowerCase() === domain.toLowerCase()
+            );
+
+            if (!isDuplicate) {
+              smeUser.monitored_query_users_information.push({
+                domain: domain,
+                last_scan: lastScanDate,
+                next_scan: nextScanDate,
+              });
+            }
           }
 
           await smeUser.save();
@@ -355,19 +370,30 @@ const fetchBreachedData = async () => {
           }
         } catch (error) {
           console.error(`Error fetching data for domain ${domain}:`, error);
-          const infoEntry = smeUser.monitored_query_users_information.find(
-            (info) => info.domain === domain
-          );
 
+          const lastScanDate = new Date();
+          const nextScanDate = new Date(lastScanDate);
+          nextScanDate.setHours(lastScanDate.getHours() + 24);
+
+          const infoEntry = smeUser.monitored_query_users_information.find(
+            (info) => info.domain?.toLowerCase() === domain.toLowerCase()
+          );
+          console.log("infoEntry sme user:", infoEntry, "domain:", domain);
           if (infoEntry) {
             infoEntry.last_scan = lastScanDate;
             infoEntry.next_scan = nextScanDate;
           } else {
-            smeUser.monitored_query_users_information.push({
-              domain: domain,
-              last_scan: lastScanDate,
-              next_scan: nextScanDate,
-            });
+            const isDuplicate = smeUser.monitored_query_users_information.some(
+              (info) => info.domain?.toLowerCase() === domain.toLowerCase()
+            );
+
+            if (!isDuplicate) {
+              smeUser.monitored_query_users_information.push({
+                domain: domain,
+                last_scan: lastScanDate,
+                next_scan: nextScanDate,
+              });
+            }
           }
 
           await smeUser.save();
@@ -406,18 +432,25 @@ const fetchBreachedData = async () => {
           nextScanDate.setHours(lastScanDate.getHours() + 24);
 
           const infoEntry = indiUser.monitored_query_users_information.find(
-            (info) => info.email === email
+            (info) => info.email?.toLowerCase() === email.toLowerCase()
           );
+          console.log("infoEntry indi user:", infoEntry, "email:", email);
 
           if (infoEntry) {
             infoEntry.last_scan = lastScanDate;
             infoEntry.next_scan = nextScanDate;
           } else {
-            indiUser.monitored_query_users_information.push({
-              email: email,
-              last_scan: lastScanDate,
-              next_scan: nextScanDate,
-            });
+            const isDuplicate = indiUser.monitored_query_users_information.some(
+              (info) => info.email?.toLowerCase() === email.toLowerCase()
+            );
+
+            if (!isDuplicate) {
+              indiUser.monitored_query_users_information.push({
+                email: email,
+                last_scan: lastScanDate,
+                next_scan: nextScanDate,
+              });
+            }
           }
 
           await indiUser.save();
@@ -475,19 +508,31 @@ const fetchBreachedData = async () => {
           }
         } catch (error) {
           console.error(`Error fetching data for email ${email}:`, error);
+
+          const lastScanDate = new Date();
+          const nextScanDate = new Date(lastScanDate);
+          nextScanDate.setHours(lastScanDate.getHours() + 24);
+
           const infoEntry = indiUser.monitored_query_users_information.find(
-            (info) => info.email === email
+            (info) => info.email?.toLowerCase() === email.toLowerCase()
           );
+          console.log("infoEntry indi user:", infoEntry, "email:", email);
 
           if (infoEntry) {
             infoEntry.last_scan = lastScanDate;
             infoEntry.next_scan = nextScanDate;
           } else {
-            indiUser.monitored_query_users_information.push({
-              email: email,
-              last_scan: lastScanDate,
-              next_scan: nextScanDate,
-            });
+            const isDuplicate = indiUser.monitored_query_users_information.some(
+              (info) => info.email?.toLowerCase() === email.toLowerCase()
+            );
+
+            if (!isDuplicate) {
+              indiUser.monitored_query_users_information.push({
+                email: email,
+                last_scan: lastScanDate,
+                next_scan: nextScanDate,
+              });
+            }
           }
 
           await indiUser.save();
@@ -498,7 +543,6 @@ const fetchBreachedData = async () => {
     console.error("Error fetching users:", error);
   }
 };
+cron.schedule("0 * * * *", fetchBreachedData);
 
-cron.schedule("0 0 * * *", fetchBreachedData);
-
-console.log("Cron job scheduled to run every 24 hours.");
+console.log("Cron job scheduled to run every hour");
