@@ -39,6 +39,7 @@ const smeUserSchema = new mongoose.Schema(
 );
 
 smeUserSchema.index({ company_email_address: 1 });
+individualUserSchema.index({ "monitored_query_users_information.domain": 1 });
 
 smeUserSchema.methods.getJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {

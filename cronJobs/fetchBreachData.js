@@ -543,6 +543,6 @@ const fetchBreachedData = async () => {
     console.error("Error fetching users:", error);
   }
 };
-cron.schedule("0 * * * *", fetchBreachedData);
+cron.schedule("0 0 * * *", fetchBreachedData);
 
 console.log("Cron job scheduled to run every hour");
