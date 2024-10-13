@@ -23,6 +23,7 @@ const smeUserSchema = new mongoose.Schema(
     company_email_address: String,
     googleId: String,
     avatar: String,
+    avatar_base64_string: String,
     monitored_query_users: [String],
     team_members: [teamMembersSchema],
     monitored_query_users_information: [
@@ -32,6 +33,16 @@ const smeUserSchema = new mongoose.Schema(
         next_scan: Date,
       },
     ],
+    last_login: {
+      date: {
+        type: Date,
+        default: function () {
+          return new Date();
+        },
+      },
+      ip_address: String,
+      device_name: String,
+    },
   },
   {
     timestamps: true,

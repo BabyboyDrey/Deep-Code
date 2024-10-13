@@ -12,6 +12,11 @@ const passport = require("passport");
 const userAuth = require("../middlewares/userAuth.js");
 const OAuthToken = require("../models/oauthToken.js");
 const alertPreferences = require("../models/alertPreferences.js");
+const { upload } = require("../multer/multerImage.js");
+const UAParser = require("ua-parser-js");
+const notificationsSettings = require("../models/notificationsSettings.js");
+const apiIntegrations = require("../models/apiIntegrations.js");
+const parser = new UAParser();
 
 router.post(
   "/sign-up",
@@ -158,11 +163,27 @@ router.post(
         });
       }
 
+      const ipAddress =
+        req.ip ||
+        req.headers["x-forwarded-for"] ||
+        req.connection.remoteAddress;
+
+      const agent = parser.setUA(req.headers["user-agent"]).getResult();
+      console.log("agent:", agent);
+      const deviceName = agent.device.model || "Unknown Device";
+      const deviceVendor = agent.device.vendor || "Unknown Vendor";
+      const os = agent.os.name || "Unknown OS";
+
       const newUser = await Users.create({
         full_name: tempUser.full_name,
         email_address: tempUser.email_address,
         password: tempUser.password,
         monitored_query_users: [tempUser.email_address],
+        last_login: {
+          date: new Date(),
+          ip_address: ipAddress,
+          device_name: `${deviceVendor} ${deviceName} (${os})`,
+        },
       });
       await alertPreferences.create({
         userId: newUser._id,
@@ -179,6 +200,9 @@ router.post(
             severity: "Soon",
           },
         ],
+      });
+      await notificationsSettings.create({
+        userId: newUser._id,
       });
       await TempUser.deleteOne({ _id: tempUser._id });
 
@@ -217,6 +241,26 @@ router.post(
           error: true,
           message: "Wrong password or email credentials",
         });
+
+      const ipAddress =
+        req.ip ||
+        req.headers["x-forwarded-for"] ||
+        req.connection.remoteAddress;
+
+      const agent = parser.setUA(req.headers["user-agent"]).getResult();
+      console.log("agent:", agent);
+      const deviceName = agent.device.model || "Unknown Device";
+      const deviceVendor = agent.device.vendor || "Unknown Vendor";
+      const os = agent.os.name || "Unknown OS";
+
+      found_user.last_login = {
+        date: new Date(),
+        ip_address: ipAddress,
+        device_name: `${deviceVendor} ${deviceName} (${os})`,
+      };
+
+      await found_user.save();
+
       console.log("user:", found_user, verifiedUser);
       userAuthToken(found_user, 200, res, "individual");
     } catch (err) {
@@ -562,6 +606,160 @@ router.post(
   })
 );
 
+router.post(
+  "/auth-reset-password",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { currentPassword, confirmPassword, newPassword } = req.body;
+
+      const foundUser = await Users.findOne({
+        _id: req.user.id,
+      });
+
+      if (!foundUser) {
+        throw new Error("User do not exist!");
+      }
+
+      const verifiedPassword = await bcrypt.compare(
+        currentPassword,
+        foundUser.password
+      );
+
+      if (!verifiedPassword) {
+        throw new Error("Current Password is incoorect! Please try again.");
+      }
+
+      if (newPassword !== confirmPassword) {
+        throw new Error("New password and confirm password does not match!");
+      }
+
+      if (newPassword === currentPassword) {
+        throw new Error("New password cannot be same as old password");
+      }
+
+      const salt = await bcrypt.genSalt(12);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      foundUser.password = hashedPassword;
+      await foundUser.save();
+
+      res.json({
+        success: true,
+        message: "New password saved!",
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
+router.put(
+  "/update-avatar",
+  upload.single("avatar"),
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res) => {
+    try {
+      console.log("req.file:", req.file.filename);
+
+      const user = await Users.findById({
+        _id: req.user.id,
+      });
+      console.log("user b4 update:", user);
+      if (!user) {
+        await new Promise((resolve, reject) => {
+          checkAndDeleteFile(`uploads/${req.file.filename}`, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+        return res.status(404).json({
+          error: true,
+          message: "No user found!",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          error: true,
+          message: "No file sent",
+        });
+      }
+      console.log("starting processing");
+
+      const imagePath = req.file.path;
+      let base64Image;
+      console.log("imagePath:", imagePath);
+
+      try {
+        await fs.access(imagePath);
+        console.log("File exists at the expected path.");
+      } catch (err) {
+        await new Promise((resolve, reject) => {
+          checkAndDeleteFile(`uploads/${req.file.filename}`, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+        console.error("File does not exist at the path:", imagePath);
+        return res.status(404).json({
+          error: true,
+          message: "File not found on server",
+        });
+      }
+
+      try {
+        const data = await fs.readFile(imagePath);
+        base64Image = data.toString("base64");
+        console.log("File read successfully, base64Image:", base64Image);
+      } catch (err) {
+        await new Promise((resolve, reject) => {
+          checkAndDeleteFile(`uploads/${req.file.filename}`, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+        if (err.code === "ENOENT") {
+          console.warn("File not found, skipping base64 conversion.");
+          base64Image = null;
+        } else {
+          console.error("Error reading image file:", err);
+          return res.status(500).json({
+            error: true,
+            message: "Error processing image file",
+          });
+        }
+      }
+
+      user.avatar = req.file.filename;
+      user.avatar_base64_string = base64Image;
+      user.updatedAt = new Date(Date.now());
+
+      await user.save();
+      console.log("user after update:", user);
+
+      res.status(200).json({
+        success: true,
+        message: "User avatar updated successfully",
+        avatar: base64Image,
+      });
+    } catch (err) {
+      await new Promise((resolve, reject) => {
+        checkAndDeleteFile(`uploads/${req.file.filename}`, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      console.error(err);
+      res.status(500).json({
+        error: true,
+        message: err.message,
+      });
+    }
+  })
+);
+
 router.get(
   "/logout",
   userAuth("indi"),
@@ -831,4 +1029,152 @@ router.get(
     }
   })
 );
+
+router.post(
+  "/update-notifications-settings",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { email, sms, inApp, emailSettings } = req.body;
+      let foundSettings = await notificationsSettings.findOne({
+        userId: req.user.id,
+      });
+      console.log("body:", email, sms, inApp, emailSettings);
+      if (!foundSettings) {
+        foundSettings = await notificationsSettings.create({
+          userId: req.user.id,
+        });
+      }
+      console.log("foundSettings b4 update:", foundSettings);
+
+      if (email) {
+        foundSettings.breachAlert.email = email;
+      }
+      if (sms) {
+        foundSettings.breachAlert.sms = sms;
+      }
+      if (inApp) {
+        foundSettings.breachAlert.inApp = inApp;
+      }
+      if (emailSettings) {
+        foundSettings.emailSettings = emailSettings;
+      }
+      console.log("foundSettings after update:", foundSettings);
+      const newSettings = await foundSettings.save();
+      res.json({
+        success: true,
+        message: "Notifications settings Updated",
+        newSettings,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+router.get(
+  "/get-notifications-settings",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      let foundSettings = await notificationsSettings.findOne({
+        userId: req.user.id,
+      });
+      if (!foundSettings) {
+        foundSettings = await notificationsSettings.create({
+          userId: req.user.id,
+        });
+      }
+
+      res.json({
+        success: true,
+
+        foundSettings,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
+router.post(
+  "/update-api-integrations",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const { apiName, apiKey } = req.body;
+
+      if (!apiName || !apiKey) {
+        throw new Error("Missing Api requirements, ApiKey and ApiName.");
+      }
+
+      const foundApi = await apiIntegrations.findOne({
+        userId: req.user.id,
+      });
+
+      if (!foundApi) {
+        const newApiIntegration = await apiIntegrations.create({
+          userId: req.user.id,
+          integrations: [
+            {
+              apiKey,
+              apiName,
+            },
+          ],
+        });
+        return res.json({
+          success: true,
+          newApiIntegration,
+        });
+      }
+
+      const foundApiNameData = foundApi.integrations.findIndex(
+        (e) => e.apiName === apiName
+      );
+
+      if (foundApiNameData !== -1) {
+        foundApi.integrations[foundApiNameData].apiKey = apiKey;
+      } else {
+        foundApi.integrations.push({
+          apiKey,
+          apiName,
+        });
+      }
+
+      await foundApi.save();
+
+      res.json({
+        success: true,
+        message: "Api integration updated",
+        foundApi,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
+router.get(
+  "/get-api-integrations",
+  userAuth("indi"),
+  asyncErrCatcher(async (req, res, next) => {
+    try {
+      const foundApi = await apiIntegrations.findOne({
+        userId: req.user.id,
+      });
+
+      res.json({
+        success: true,
+
+        foundApi,
+      });
+    } catch (err) {
+      console.error(err);
+      next(err.message);
+    }
+  })
+);
+
 module.exports = router;

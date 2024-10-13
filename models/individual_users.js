@@ -15,6 +15,16 @@ const individualUserSchema = new mongoose.Schema(
         next_scan: Date,
       },
     ],
+    last_login: {
+      date: {
+        type: Date,
+        default: function () {
+          return new Date();
+        },
+      },
+      ip_address: String,
+      device_name: String,
+    },
   },
   {
     timestamps: true,
@@ -22,6 +32,7 @@ const individualUserSchema = new mongoose.Schema(
 );
 
 individualUserSchema.index({ email_address: 1 });
+individualUserSchema.index({ "monitored_query_users_information.email": 1 });
 
 individualUserSchema.methods.getJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
