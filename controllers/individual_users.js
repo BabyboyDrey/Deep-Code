@@ -164,9 +164,9 @@ router.post(
       }
 
       const ipAddress =
-        req.ip ||
-        req.headers["x-forwarded-for"] ||
-        req.connection.remoteAddress;
+        req.headers["x-forwarded-for"]?.split(",").shift() ||
+        req.socket?.remoteAddress ||
+        req.connection?.remoteAddress;
 
       const agent = parser.setUA(req.headers["user-agent"]).getResult();
       console.log("agent:", agent);
@@ -243,9 +243,9 @@ router.post(
         });
 
       const ipAddress =
-        req.ip ||
-        req.headers["x-forwarded-for"] ||
-        req.connection.remoteAddress;
+        req.headers["x-forwarded-for"]?.split(",").shift() ||
+        req.socket?.remoteAddress ||
+        req.connection?.remoteAddress;
 
       const agent = parser.setUA(req.headers["user-agent"]).getResult();
       console.log("agent:", agent);
