@@ -19,6 +19,7 @@ const checkAndDeleteFile = require("../utils/checkAndDeleteFile.js");
 const path = require("path");
 const UAParser = require("ua-parser-js");
 const notificationsSettings = require("../models/notificationsSettings.js");
+const apiIntegrations = require("../models/apiIntegrations.js");
 const parser = new UAParser();
 const fs = require("fs").promises;
 
@@ -562,7 +563,7 @@ router.put(
   userAuth("sme"),
   asyncErrCatcher(async (req, res) => {
     try {
-      console.log("req.file:", req.file.filename);
+      console.log("req.file:", req.file.filename, req.file);
 
       const user = await Users.findById({
         _id: req.user.id,
@@ -587,6 +588,7 @@ router.put(
           message: "No file sent",
         });
       }
+
       console.log("starting processing");
 
       const imagePath = req.file.path;
@@ -1415,7 +1417,7 @@ router.post(
   asyncErrCatcher(async (req, res, next) => {
     try {
       const { apiName, apiKey } = req.body;
-
+      console.log("apiName, apiKey :", apiName, apiKey);
       if (!apiName || !apiKey) {
         throw new Error("Missing Api requirements, ApiKey and ApiName.");
       }
