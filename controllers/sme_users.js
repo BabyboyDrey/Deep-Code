@@ -504,7 +504,7 @@ router.get(
   (req, res) => {
     console.log("route hit");
     userAuthToken(req.user, 200, res);
-    res.redirect("/user/dashboard");
+    res.redirect("https://deepcode.onrender.com/#/dashboard");
   }
 );
 
