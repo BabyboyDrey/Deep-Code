@@ -17,6 +17,7 @@ const UAParser = require("ua-parser-js");
 const notificationsSettings = require("../models/notificationsSettings.js");
 const apiIntegrations = require("../models/apiIntegrations.js");
 const parser = new UAParser();
+const checkAndDeleteFile = require("../utils/checkAndDeleteFile.js");
 
 router.post(
   "/sign-up",

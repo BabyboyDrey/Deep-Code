@@ -8,7 +8,7 @@ const storage = multer.diskStorage({
     try {
       fs.accessSync(uploadDir);
     } catch (err) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+      fs.mkdirSync(fuploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
